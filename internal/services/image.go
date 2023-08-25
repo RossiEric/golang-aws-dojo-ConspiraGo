@@ -21,15 +21,51 @@ var (
 	files       = kingpin.Arg("files", "Images to process.").Required().ExistingFiles()
 )
 
-type Transparency interface {
-	Process(ctx context.Context, reader io.Reader) (io.Reader, error)
+type Image interface {
+	RemoveTransparency(ctx context.Context, reader io.Reader) (io.Reader, error)
+	Slice(ctx context.Context, reader io.Reader, top, bottom, left, right int) (io.Reader, error)
 }
 
-type transparency struct {
+type imageImpl struct {
 }
 
-// Process implements Transparency.
-func (t *transparency) Process(ctx context.Context, reader io.Reader) (io.Reader, error) {
+// Slice implements Image.
+func (*imageImpl) Slice(ctx context.Context, reader io.Reader, top int, bottom int, left int, right int) (io.Reader, error) {
+	im, _, err := image.Decode(reader)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bounds := im.Bounds()
+
+	isValid := image.Rect(int(left), int(top), int(right), int(bottom)).In(bounds)
+
+	if !isValid {
+		return nil, errors.New("invalid slice")
+	}
+
+	dst := image.NewRGBA(image.Rect(left, top, right, bottom))
+
+	// Copia os pixels da região da imagem original para a nova imagem
+	for y := top; y < bottom; y++ {
+		for x := left; x < right; x++ {
+			srcColor := im.At(x, y)
+			dst.Set(x-left, y-top, srcColor)
+		}
+	}
+
+	var resultBuffer bytes.Buffer
+	err = png.Encode(&resultBuffer, dst) // Utilizando o encoder PNG
+	if err != nil {
+		return nil, err
+	}
+
+	return &resultBuffer, nil
+}
+
+// RemoveTransparency implements imageImpl.
+func (t *imageImpl) RemoveTransparency(ctx context.Context, reader io.Reader) (io.Reader, error) {
 	im, _, err := image.Decode(reader)
 
 	if err != nil {
@@ -39,7 +75,7 @@ func (t *transparency) Process(ctx context.Context, reader io.Reader) (io.Reader
 	return t.processFile(im)
 }
 
-func (t *transparency) ensureGray(im image.Image) (*image.Gray, bool) {
+func (t *imageImpl) ensureGray(im image.Image) (*image.Gray, bool) {
 	switch im := im.(type) {
 	case *image.Gray:
 		return im, true
@@ -50,7 +86,7 @@ func (t *transparency) ensureGray(im image.Image) (*image.Gray, bool) {
 	}
 }
 
-func (t *transparency) histogramPercentile(hist []int, n int, p float64) (int, error) {
+func (t *imageImpl) histogramPercentile(hist []int, n int, p float64) (int, error) {
 	if p <= 0.5 {
 		m := int(float64(n) * p)
 		for v, c := range hist {
@@ -72,7 +108,7 @@ func (t *transparency) histogramPercentile(hist []int, n int, p float64) (int, e
 	return 0, errors.New("histogramPercentile: invalid percentile")
 }
 
-func (t *transparency) columnPercentiles(im *image.Gray, p float64, x, r int) ([]int, error) {
+func (t *imageImpl) columnPercentiles(im *image.Gray, p float64, x, r int) ([]int, error) {
 	b := im.Bounds()
 	x0 := x - r
 	x1 := x + r + 1
@@ -140,7 +176,7 @@ func (t *transparency) columnPercentiles(im *image.Gray, p float64, x, r int) ([
 	return result, nil
 }
 
-func (t *transparency) imagePercentile(im *image.Gray, p float64) (int, error) {
+func (t *imageImpl) imagePercentile(im *image.Gray, p float64) (int, error) {
 	hist := make([]int, 256)
 	b := im.Bounds()
 	n := 0
@@ -155,7 +191,7 @@ func (t *transparency) imagePercentile(im *image.Gray, p float64) (int, error) {
 	return t.histogramPercentile(hist, n, p)
 }
 
-func (t *transparency) processFile(src image.Image) (io.Reader, error) {
+func (t *imageImpl) processFile(src image.Image) (io.Reader, error) {
 	s := *windowSize / 100
 	p := *percentile / 100
 	t1 := float64(*targetValue)
@@ -232,6 +268,6 @@ func (t *transparency) processFile(src image.Image) (io.Reader, error) {
 
 }
 
-func NewTransparency() Transparency {
-	return &transparency{}
+func NewImage() Image {
+	return &imageImpl{}
 }

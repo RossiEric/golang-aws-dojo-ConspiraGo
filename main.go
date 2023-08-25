@@ -1,14 +1,15 @@
 package main
 
 import (
-	"conspirago/golang-aws-dojo-ConspiraGo/internal/services"
 	"context"
 	"io/ioutil"
 	"os"
+
+	"github.com/RossiEric/golang-aws-dojo-ConspiraGo/internal/services"
 )
 
 func main() {
-	img, err := os.Open("/home/luciano/Desktop/rg1.jpg")
+	img, err := os.Open("/home/luciano/Desktop/IMG_20230825_135633.jpg")
 
 	if err != nil {
 		panic(err)
@@ -18,21 +19,26 @@ func main() {
 
 	transparency := services.NewImage()
 
-	reader, err := transparency.RemoveTransparency(context.Background(), img)
+	sliced, err := transparency.Slice(context.Background(), img, services.Bound{
+		Left:   416,
+		Right:  1272,
+		Top:    2607,
+		Bottom: 2745,
+	})
 
 	if err != nil {
 		panic(err)
 	}
 
-	splited, err := transparency.Slice(context.Background(), reader, 0, 44, 0, 126)
+	transparent, err := transparency.RemoveTransparency(context.Background(), sliced)
 
 	if err != nil {
 		panic(err)
 	}
 
 	// do something with reader
-	b, _ := ioutil.ReadAll(splited)
-	err = os.WriteFile("/home/luciano/Desktop/rg1.png", b, 0644)
+	b, _ := ioutil.ReadAll(transparent)
+	err = os.WriteFile("/home/luciano/Desktop/teste1.png", b, 0644)
 
 	if err != nil {
 		panic(err)

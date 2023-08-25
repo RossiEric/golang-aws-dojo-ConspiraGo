@@ -33,6 +33,7 @@ func init() {
 func main() {
 	//lambda.Start(Handler)
 	process(context.Background(), "conspirago-documents", "rg.jpg")
+	process(context.Background(), "conspirago-documents", "cnh.jpg")
 }
 
 func process(ctx context.Context, bucket string, key string) {
@@ -108,7 +109,7 @@ func process(ctx context.Context, bucket string, key string) {
 
 			b, _ := ioutil.ReadAll(transparent)
 
-			err = os.WriteFile("output.png", b, 0644)
+			err = os.WriteFile(fmt.Sprintf("output_%s", key), b, 0644)
 
 			if err != nil {
 				panic(err)

@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func handleRequest(ctx context.Context, s3Event events.S3Event) {
+func Handler(ctx context.Context, s3Event events.S3Event) {
 	for _, record := range s3Event.Records {
 		s3Entity := record.S3
 
@@ -36,5 +36,5 @@ func handleRequest(ctx context.Context, s3Event events.S3Event) {
 }
 
 func main() {
-	lambda.Start(handleRequest)
+	lambda.Start(Handler)
 }

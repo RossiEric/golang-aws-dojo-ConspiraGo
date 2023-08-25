@@ -33,6 +33,7 @@ func init() {
 func main() {
 	//lambda.Start(Handler)
 	process(context.Background(), "conspirago-documents", "rg.jpg")
+	process(context.Background(), "conspirago-documents", "cpf.jpg")
 }
 
 func process(ctx context.Context, bucket string, key string) {

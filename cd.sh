@@ -12,6 +12,9 @@ ZIP_FILE="function.zip"
 # Caminho para o código-fonte da função em Go
 CODE_PATH="./cmd/analyzer-lambda"
 
+# Usuario
+USER_ID=
+
 # Compila o código em um arquivo .zip
 cd $CODE_PATH
 GOOS=linux go build -o main
@@ -36,6 +39,19 @@ aws lambda add-permission \
   --source-arn arn:aws:s3:::$S3_BUCKET \
   --statement-id lambda-s3 \
   #--source-account sua-conta
+
+aws s3api put-bucket-notification-configuration \
+  --bucket $S3_BUCKET \
+  --notification-configuration '{
+      "LambdaFunctionConfigurations": [
+          {
+              "LambdaFunctionArn": "arn:aws:lambda:us-east-1:$USER_ID:function:$FUNCTION_NAME",
+              "Events": ["s3:ObjectCreated:*"]
+          }
+      ]
+  }'
+
+aws s3api put-bucket-policy --bucket $S3_BUCKET --policy file://bucket-policy.json
 
 # Limpa os arquivos temporários
 rm $ZIP_FILE main

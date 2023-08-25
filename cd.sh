@@ -10,7 +10,7 @@ S3_BUCKET="conspirago-documents"
 ZIP_FILE="function.zip"
 
 # Caminho para o código-fonte da função em Go
-CODE_PATH="/cmd/"
+CODE_PATH="./cmd/analyzer-lambda"
 
 # Compila o código em um arquivo .zip
 cd $CODE_PATH
@@ -24,9 +24,9 @@ aws s3 cp $ZIP_FILE s3://$S3_BUCKET/$ZIP_FILE
 aws lambda create-function \
   --function-name $FUNCTION_NAME \
   --runtime go1.x \
-  --role arn:aws:iam::sua-conta:role/seu-role \
   --handler main \
   --code S3Bucket=$S3_BUCKET,S3Key=$ZIP_FILE
+    #--role arn:aws:iam::sua-conta:role/seu-role \
 
 # Concede permissões completas de acesso ao Amazon S3
 aws lambda add-permission \
@@ -35,7 +35,7 @@ aws lambda add-permission \
   --principal s3.amazonaws.com \
   --source-arn arn:aws:s3:::$S3_BUCKET \
   --statement-id lambda-s3 \
-  --source-account sua-conta
+  #--source-account sua-conta
 
 # Limpa os arquivos temporários
 rm $ZIP_FILE main

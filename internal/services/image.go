@@ -21,16 +21,28 @@ var (
 	files       = kingpin.Arg("files", "Images to process.").Required().ExistingFiles()
 )
 
+type Bound struct {
+	Left   int
+	Top    int
+	Bottom int
+	Right  int
+}
+
 type Image interface {
 	RemoveTransparency(ctx context.Context, reader io.Reader) (io.Reader, error)
-	Slice(ctx context.Context, reader io.Reader, top, bottom, left, right int) (io.Reader, error)
+	Slice(ctx context.Context, reader io.Reader, bound Bound) (io.Reader, error)
 }
 
 type imageImpl struct {
 }
 
 // Slice implements Image.
-func (*imageImpl) Slice(ctx context.Context, reader io.Reader, top int, bottom int, left int, right int) (io.Reader, error) {
+func (*imageImpl) Slice(ctx context.Context, reader io.Reader, bound Bound) (io.Reader, error) {
+	top := bound.Top
+	left := bound.Left
+	bottom := bound.Bottom
+	right := bound.Right
+
 	im, _, err := image.Decode(reader)
 
 	if err != nil {
@@ -51,7 +63,7 @@ func (*imageImpl) Slice(ctx context.Context, reader io.Reader, top int, bottom i
 	for y := top; y < bottom; y++ {
 		for x := left; x < right; x++ {
 			srcColor := im.At(x, y)
-			dst.Set(x-left, y-top, srcColor)
+			dst.Set(x, y, srcColor)
 		}
 	}
 
